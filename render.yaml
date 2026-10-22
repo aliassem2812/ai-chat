@@ -1,0 +1,16 @@
+# Render blueprint: creates the hosted chat server from this repository
+services:
+  - type: web
+    name: ali-ai-chat
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: LLM_API_KEY
+        sync: false # entered by hand in the Render dashboard, never stored in the repository
+      - key: ALLOWED_ORIGINS
+        value: https://aliassem2812.github.io

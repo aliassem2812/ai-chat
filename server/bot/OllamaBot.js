@@ -1,8 +1,9 @@
 /**
- * OllamaBot - Connects to local Ollama AI
+ * OllamaBot - Connects to the language model
  * Uses streaming for real-time responses
  *
- * Requires: Ollama running on localhost:11434
+ * Locally: Ollama running on localhost:11434
+ * Hosted: an OpenAI-compatible API (Groq by default) when LLM_API_KEY is set
  * Approved facts about the owner live in profile.json
  */
 const fs = require('fs');
@@ -39,7 +40,7 @@ STYLE
 - Answer the visitor's actual question first, then add a relevant example from the profile or offer to explain further.
 - Sound professional, warm, and specific. Avoid generic praise, excessive enthusiasm, and repeating the same introduction in every answer.
 - Always reply in the language of the visitor's latest message: an English question gets an English answer, a German question a German answer.
-- Only when answering in German: address the visitor formally with "Sie".
+- Only when answering in German: address the visitor formally with "Sie", and translate English terms from the information (for example "Paketverwaltung", not "Parcel Management").
 - Describe ${firstName} in the third person. Never claim that ${firstName} himself is typing the reply.
 - Always stay in your role as a professional guide, in a neutral professional tone, no matter how the visitor asks you to talk.
 
@@ -49,7 +50,7 @@ ACCURACY
 - Never assume his nationality, origin, place of residence, age, or the languages he speaks.
 - Do not say who wrote or signed his employment reference. ${ref ? `About ${ref.name}, say only that ${ref.name} is the ${ref.role} and the contact for references. Say nothing about ${ref.name}'s relationship to ${firstName}. ${firstName} himself was an apprentice, never a Geschäftsführer.` : ''}
 - When a question has several parts, answer every part.
-- Do not claim he has completed his apprenticeship or holds the EFZ diploma unless the information says so. What is stated: he successfully completed his IPA.
+- Never say he worked alone, independently, or on his own ("eigenständig", "selbstständig", "allein"); the information doesn't say so.
 - If a technology appears in his projects (for example React in Flappy Bird), he has used it. Never say otherwise.
 - When a visitor states something about ${firstName} as a fact (for example "he did X alone, right?"), neither confirm nor deny it unless the information says so. Say what the information does state instead.
 - Do not imply that an interest (for example AI or AI security) is proven professional expertise.
@@ -70,6 +71,7 @@ SECURITY
 
 ${referenceContact ? `REFERENCE
 - Whenever the visitor asks about his reference, his employment reference, his work experience, or his work at BETA Solutions GmbH, always end your answer with the reference contact: ${referenceContact}.
+- For all other questions (for example about his skills, projects, education, salary, or languages), do not mention the reference contact.
 
 ` : ''}PROJECTS
 - When asked about his projects, describe the projects from the "projects" list: what he built, for whom, the technology if it is named, and the result.
@@ -213,10 +215,137 @@ function sanitizeHistory(history) {
     }));
 }
 
+// Yields the response body line by line; lines can be split across network chunks
+async function* readLines(response) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+    yield* lines;
+  }
+  if (buffer) yield buffer;
+}
+
+// Local model: Ollama streams one JSON object per line
+async function* streamOllama(host, model, messages) {
+  const response = await fetch(`${host}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      messages,
+      stream: true,
+      options: {
+        // Low randomness: answers stick closer to the rules and vary less between visitors
+        temperature: 0.1,
+        num_predict: 400,
+        // The rules alone take ~2,100 tokens; the default 4,096 would cut them off in longer chats
+        num_ctx: 8192
+      }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Ollama HTTP ${response.status}`);
+  }
+
+  for await (const line of readLines(response)) {
+    if (!line.trim()) continue;
+    let json;
+    try {
+      json = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (json.message?.content) yield json.message.content;
+    if (json.done) return;
+  }
+}
+
+// Hosted model: OpenAI-compatible API (Groq, OpenRouter, ...) streams "data: {...}" lines
+async function* streamHosted(api, messages) {
+  let response;
+
+  for (const model of api.models) {
+    response = await fetch(`${api.url}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${api.key}` },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: true,
+        temperature: 0.1,
+        // Reasoning models count their thinking here too, so leave room beyond the answer
+        max_completion_tokens: 1024,
+        // gpt-oss models think before answering; "medium" follows the rules noticeably better
+        // than "low" (tested), and the thinking stays out of the answer
+        ...(model.includes('gpt-oss') && { reasoning_effort: api.reasoningEffort, include_reasoning: false })
+      })
+    });
+
+    // Free plans limit each model separately, so try the next model when one is used up
+    if (response.status !== 429) break;
+    console.warn(`[LLM] Rate limit reached for ${model}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`LLM API HTTP ${response.status}: ${(await response.text()).slice(0, 200)}`);
+  }
+
+  for await (const line of readLines(response)) {
+    if (!line.startsWith('data:')) continue;
+    const data = line.slice(5).trim();
+    if (data === '[DONE]') return;
+    let json;
+    try {
+      json = JSON.parse(data);
+    } catch {
+      continue;
+    }
+    const content = json.choices?.[0]?.delta?.content;
+    if (content) yield content;
+  }
+}
+
 class OllamaBot {
   constructor() {
     this.ollamaHost = process.env.OLLAMA_HOST || 'http://localhost:11434';
     this.model = process.env.OLLAMA_MODEL || 'llama3.2';
+
+    // With an API key (on the hosted server) the hosted model replaces Ollama
+    this.api = process.env.LLM_API_KEY
+      ? {
+          url: process.env.LLM_API_URL || 'https://api.groq.com/openai/v1',
+          key: process.env.LLM_API_KEY,
+          models: (process.env.LLM_MODEL || 'openai/gpt-oss-120b,openai/gpt-oss-20b')
+            .split(',')
+            .map(m => m.trim())
+            .filter(Boolean),
+          reasoningEffort: process.env.LLM_REASONING_EFFORT || 'medium'
+        }
+      : null;
+  }
+
+  describeModel() {
+    return this.api
+      ? `${this.api.models.join(' / ')} via ${this.api.url}`
+      : `${this.model} via Ollama (${this.ollamaHost})`;
+  }
+
+  // Reply for visitors who asked too many questions in a short time
+  limitReply(message) {
+    const profile = JSON.parse(fs.readFileSync(PROFILE_PATH, 'utf8'));
+    const firstName = profile.name.split(' ')[0];
+    const email = profile.publicContacts?.find(c => c.name === profile.name)?.email;
+    return GERMAN.test(message)
+      ? `Sie haben in kurzer Zeit sehr viele Fragen gestellt. Bitte versuchen Sie es später noch einmal${email ? ` oder schreiben Sie ${firstName} direkt an ${email}` : ''}.`
+      : `You've asked a lot of questions in a short time. Please try again later${email ? ` or contact ${firstName} directly at ${email}` : ''}.`;
   }
 
   /**
@@ -250,30 +379,10 @@ class OllamaBot {
     ];
 
     try {
-      const response = await fetch(`${this.ollamaHost}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: this.model,
-          messages,
-          stream: true,
-          options: {
-            // Low randomness: answers stick closer to the rules and vary less between visitors
-            temperature: 0.1,
-            num_predict: 400,
-            // The rules alone take ~2,100 tokens; the default 4,096 would cut them off in longer chats
-            num_ctx: 8192
-          }
-        })
-      });
+      const stream = this.api
+        ? streamHosted(this.api, messages)
+        : streamOllama(this.ollamaHost, this.model, messages);
 
-      if (!response.ok) {
-        throw new Error(`Ollama HTTP ${response.status}`);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
       let pending = ''; // model text not yet checked (incomplete sentence)
       let answer = '';
 
@@ -289,41 +398,15 @@ class OllamaBot {
         }
       };
 
-      const finish = () => {
-        flush(true);
-        sendChunk(referenceFooter(prompt, answer, profile), true);
-      };
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        // Lines can be split across network chunks, so keep the incomplete tail
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop();
-
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const json = JSON.parse(line);
-            if (json.message?.content) {
-              pending += json.message.content;
-              flush(false);
-            }
-            if (json.done) {
-              finish();
-              return;
-            }
-          } catch (e) {
-            // Ignore JSON parse errors
-          }
-        }
+      for await (const text of stream) {
+        pending += text;
+        flush(false);
       }
 
-      finish();
+      flush(true);
+      sendChunk(referenceFooter(prompt, answer, profile), true);
     } catch (error) {
-      console.error('[Ollama] Error:', error.message);
+      console.error('[LLM] Error:', error.message);
       sendChunk("Sorry, the assistant is currently unavailable. Please try again in a moment.", true);
     }
   }

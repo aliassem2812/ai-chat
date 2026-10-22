@@ -1,6 +1,6 @@
 # AI Guide – Personal AI Chat for Recruiters
 
-An AI chat that answers recruiters' questions about my professional background: experience, education, projects and goals. It runs on my portfolio website and streams answers live from a local language model.
+An AI chat that answers recruiters' questions about my professional background: experience, education, projects and goals. It runs on my portfolio website and streams answers live from a language model: locally with Ollama, online through the Groq API.
 
 ## Features
 
@@ -21,7 +21,7 @@ flowchart LR
     S --> G{Input guard}
     G -- role-play / injection / code request --> F[Fixed reply]
     G -- normal question --> P[System prompt<br/>+ profile.json<br/>+ chat history]
-    P --> O[Ollama<br/>local LLM]
+    P --> O[Ollama locally<br/>or Groq API online]
     O -- streamed tokens --> C[Sentence-by-sentence<br/>output check]
     C -- clean sentences --> V
     F --> V
@@ -31,10 +31,11 @@ flowchart LR
 - The **chat history** sent by the browser is validated and capped (20 messages, length limit) before it reaches the model.
 - **Low temperature (0.1)** and a larger context window (8,192 tokens) keep answers consistent and stop the rules from being cut off in long chats.
 - If the model fails to add the reference contact, the server **appends it automatically** for questions about work experience.
+- Online, the server only accepts the portfolio website as origin and limits each visitor to 30 questions per hour, which protects the free API quota.
 
 ## Tech stack
 
-Node.js · WebSockets (`ws`) · Ollama (llama3.2) · HTML / CSS / JavaScript
+Node.js · WebSockets (`ws`) · Ollama (llama3.2, locally) · Groq API (gpt-oss, online) · HTML / CSS / JavaScript
 
 ## Project structure
 
@@ -60,5 +61,20 @@ npm start
 Then open `client/index.html` in the browser.
 
 Another model can be used with the environment variable `OLLAMA_MODEL`, for example `OLLAMA_MODEL=qwen2.5:7b`.
+
+## Hosting
+
+Online, the bot uses a hosted language model instead of Ollama. Any OpenAI-compatible API works; Groq is the default.
+
+| Variable | Purpose |
+|---|---|
+| `LLM_API_KEY` | API key; when set, the hosted model replaces Ollama |
+| `LLM_API_URL` | API address (default `https://api.groq.com/openai/v1`) |
+| `LLM_MODEL` | Models in order, comma-separated; the next one is used when a rate limit is reached (default `openai/gpt-oss-120b,openai/gpt-oss-20b`) |
+| `LLM_REASONING_EFFORT` | Thinking effort for gpt-oss models: `low`, `medium` (default) or `high` |
+| `ALLOWED_ORIGINS` | Websites allowed to use the chat, comma-separated |
+| `MAX_QUESTIONS_PER_HOUR` | Questions per visitor and hour (default 30) |
+
+Locally the variables can go in `server/.env` (see [`server/.env.example`](server/.env.example)). [`render.yaml`](render.yaml) sets up the server on [Render](https://render.com); the server answers `GET /health` for health checks and uptime monitors.
 
 > **Note:** The contact details in `profile.json` are placeholders in this public repository. On the live portfolio site they hold real, approved contacts.

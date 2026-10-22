@@ -1,3 +1,7 @@
 node_modules/
 *.log
 .env
+# Class exercise leftovers, not part of the project
+.vscode/
+demo.yml
+/package-lock.json

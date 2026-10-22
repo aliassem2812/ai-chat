@@ -1,16 +1,19 @@
 {
   "name": "Ali Haydar",
   "pronouns": "he/him",
-  "headline": "Application developer with a background in Informatiker EFZ Applikationsentwicklung, continuing his studies at WISS Schule Zürich toward Dipl. Informatiker HF / Professional Bachelor.",
+  "headline": "Application developer with a completed apprenticeship as Informatiker EFZ Applikationsentwicklung, continuing his studies at WISS Schule Zürich toward Dipl. Informatiker HF / Professional Bachelor.",
+
   "summary": [
     "IT professional in development with a background in application development and a strong interest in building useful software.",
     "Wants to turn the IT knowledge he has gained over the years into increasingly capable, practical work.",
     "Is building on the knowledge from his IT education and practical experience."
   ],
+
   "education": [
-    "Informatiker EFZ training in Applikationsentwicklung (application development). Successfully completed his final practical project (IPA).",
+    "Completed his apprenticeship as Informatiker EFZ in Applikationsentwicklung (application development) and holds the EFZ (Swiss Federal VET Diploma). Successfully completed his final practical project (IPA).",
     "Currently studying at WISS Schule Zürich toward Dipl. Informatiker HF / Professional Bachelor."
   ],
+
   "experience": [
     {
       "company": "BETA Solutions GmbH",
@@ -20,20 +23,24 @@
       "work": [
         "Developed websites and worked on client projects.",
         "CMS and website updates.",
-        "A client project in parcel management.",
+        "A client project in parcel management: the web application for Grenzlager GmbH (see projects).",
         "Telephone support."
       ],
       "howHeWorked": "Focused on delivering the best possible result for each client. Worked closely with his team, followed their guidance and instructions, and received very positive feedback on his work.",
       "employmentReference": "His employment reference highlights his reliability, responsibility, careful work, teamwork, and service toward customers."
     }
   ],
+
   "ipa": "IPA means \"Individuelle Praktische Arbeit\", the final practical project of the Swiss vocational training. For his successfully completed IPA, he extended existing software to automate the handling of uncollected parcels. Details are in the project \"IPA Final Project\" below.",
+
   "projects": [
     {
       "name": "Grenzlager GmbH: Warehouse Management Web Application",
       "website": "https://grenzlager.ch",
+      "context": "A client project of BETA Solutions GmbH, developed during his apprenticeship there.",
       "description": "Developed a web application for Grenzlager GmbH, a package reception service near the Swiss border. The system is in use by the company to manage customer parcels, notifications, and collections.",
-      "extensions": "Extended it with automated reminders and storage fee management through email and WhatsApp. This extension was his IPA final project; the web application itself was not part of the IPA."
+      "extensions": "Extended it with automated reminders and storage fee management through email and WhatsApp. This extension was his IPA final project; the web application itself was not part of the IPA.",
+      "projectValue": "Five figures (CHF)"
     },
     {
       "name": "IPA Final Project: Grenzlager GmbH Automated Parcel Reminders and Fee Management",
@@ -42,8 +49,8 @@
     },
     {
       "name": "AI Guide: Personal AI Chat for Recruiters",
-      "technology": "Node.js, WebSockets, JavaScript, Ollama (local language model)",
-      "description": "The AI guide on his portfolio website that answers visitors' questions about his professional background. Answers stream live over WebSockets from a local language model.",
+      "technology": "Node.js, WebSockets, JavaScript, a language model (locally with Ollama, online through the Groq API)",
+      "description": "The AI guide on his portfolio website that answers visitors' questions about his professional background. Answers stream live over WebSockets from a language model.",
       "features": "Uses only facts Ali has approved, blocks prompt injection and off-topic requests before they reach the model, checks every answer sentence by sentence before visitors see it, and answers in English and German.",
       "sourceCode": "https://github.com/aliassem2812/ai-chat"
     },
@@ -64,16 +71,22 @@
       "description": "A Flappy Bird game in React where the player taps the screen to navigate a bird through pipes."
     }
   ],
+
   "languagesOnProjectsPage": "On his projects page, Ali names C++, Java, JavaScript, and SQL among the programming languages he has worked with.",
+
   "github": "https://github.com/aliassem2812 (all projects and source code)",
+
   "interests": [
     "Software development",
     "Practical problem-solving",
     "AI",
     "AI security"
   ],
+
   "goals": "Looking for a role where he can contribute to software development, keep programming, learn from experienced colleagues, and bring what he studies into real projects.",
-  "aboutThisBot": "Ali built this AI bot so employers and other visitors can learn about his experience, interests, and goals by asking questions directly. It runs on a Node.js server with WebSockets and a local language model (Ollama), with rules against made-up facts and prompt injection.",
+
+  "aboutThisBot": "Ali built this AI bot so employers and other visitors can learn about his experience, interests, and goals by asking questions directly. It runs on a Node.js server with WebSockets and a language model (locally with Ollama, online through the Groq API), with rules against made-up facts and prompt injection.",
+
   "publicContacts": [
     {
       "purpose": "Contact Ali directly (job opportunities, questions about his background)",
