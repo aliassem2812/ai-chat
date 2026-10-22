@@ -91,14 +91,14 @@
     {
       "purpose": "Contact Ali directly (job opportunities, questions about his background)",
       "name": "Ali Haydar",
-      "email": "your.email@example.com"
+      "email": "alihaydar.bws@gmail.com"
     },
     {
       "purpose": "Further information about Ali's work at BETA Solutions GmbH (employment reference)",
-      "name": "Reference Contact",
+      "name": "$REFERENCE_NAME",
       "role": "Geschäftsführer, BETA Solutions GmbH",
-      "phone": "+41 00 000 00 00",
-      "email": "reference@example.com"
+      "phone": "$REFERENCE_PHONE",
+      "email": "$REFERENCE_EMAIL"
     }
   ]
 }

@@ -13,6 +13,20 @@ const PROFILE_PATH = path.join(__dirname, 'profile.json');
 const MAX_MESSAGE_LENGTH = 1000;
 const MAX_HISTORY_MESSAGES = 20;
 
+// Values like "$REFERENCE_PHONE" in profile.json come from environment variables, so
+// private contact details never end up in the public code. A contact whose values are
+// not set is left out.
+function loadProfile() {
+  const profile = JSON.parse(fs.readFileSync(PROFILE_PATH, 'utf8'));
+  const fromEnv = value =>
+    typeof value === 'string' && value.startsWith('$') ? process.env[value.slice(1)] : value;
+
+  profile.publicContacts = (profile.publicContacts || [])
+    .map(contact => Object.fromEntries(Object.entries(contact).map(([k, v]) => [k, fromEnv(v)])))
+    .filter(contact => Object.values(contact).every(Boolean));
+  return profile;
+}
+
 function buildSystemPrompt(profile) {
   const name = profile.name;
   const firstName = name.split(' ')[0];
@@ -340,7 +354,7 @@ class OllamaBot {
 
   // Reply for visitors who asked too many questions in a short time
   limitReply(message) {
-    const profile = JSON.parse(fs.readFileSync(PROFILE_PATH, 'utf8'));
+    const profile = loadProfile();
     const firstName = profile.name.split(' ')[0];
     const email = profile.publicContacts?.find(c => c.name === profile.name)?.email;
     return GERMAN.test(message)
@@ -363,7 +377,7 @@ class OllamaBot {
     }
 
     // Re-read on every request so edits to profile.json apply without a restart
-    const profile = JSON.parse(fs.readFileSync(PROFILE_PATH, 'utf8'));
+    const profile = loadProfile();
 
     const guarded = guardReply(prompt, profile);
     if (guarded) {

@@ -10,7 +10,16 @@ services:
     startCommand: npm start
     healthCheckPath: /health
     envVars:
+      # Private values: entered by hand in the Render dashboard, never stored in the repository
       - key: LLM_API_KEY
-        sync: false # entered by hand in the Render dashboard, never stored in the repository
+        sync: false
+      - key: REFERENCE_NAME
+        sync: false
+      - key: REFERENCE_PHONE
+        sync: false
+      - key: REFERENCE_EMAIL
+        sync: false
+      - key: DISCORD_WEBHOOK_URL
+        sync: false
       - key: ALLOWED_ORIGINS
         value: https://aliassem2812.github.io

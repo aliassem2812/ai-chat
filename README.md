@@ -72,9 +72,11 @@ Online, the bot uses a hosted language model instead of Ollama. Any OpenAI-compa
 | `LLM_API_URL` | API address (default `https://api.groq.com/openai/v1`) |
 | `LLM_MODEL` | Models in order, comma-separated; the next one is used when a rate limit is reached (default `openai/gpt-oss-120b,openai/gpt-oss-20b`) |
 | `LLM_REASONING_EFFORT` | Thinking effort for gpt-oss models: `low`, `medium` (default) or `high` |
-| `ALLOWED_ORIGINS` | Websites allowed to use the chat, comma-separated |
+| `REFERENCE_NAME`, `REFERENCE_PHONE`, `REFERENCE_EMAIL` | Reference contact the bot shares; fills the `$REFERENCE_…` values in `profile.json` |
+| `DISCORD_WEBHOOK_URL` | Contact form of the portfolio: `POST /contact` forwards messages to this Discord webhook |
+| `ALLOWED_ORIGINS` | Websites allowed to use the chat and contact form, comma-separated |
 | `MAX_QUESTIONS_PER_HOUR` | Questions per visitor and hour (default 30) |
 
 Locally the variables can go in `server/.env` (see [`server/.env.example`](server/.env.example)). [`render.yaml`](render.yaml) sets up the server on [Render](https://render.com); the server answers `GET /health` for health checks and uptime monitors.
 
-> **Note:** The contact details in `profile.json` are placeholders in this public repository. On the live portfolio site they hold real, approved contacts.
+> **Note:** Private contact details are not stored in this repository. Values like `"$REFERENCE_PHONE"` in `profile.json` come from environment variables, and a contact without values is left out.
